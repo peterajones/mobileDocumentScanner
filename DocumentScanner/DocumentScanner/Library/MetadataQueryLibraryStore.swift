@@ -31,7 +31,7 @@ final class MetadataQueryLibraryStore: NSObject, LibraryStoring {
         NotificationCenter.default.removeObserver(self)
     }
 
-    func refresh() async {
+    func refresh() {
         query.disableUpdates()
         query.enableUpdates()
     }

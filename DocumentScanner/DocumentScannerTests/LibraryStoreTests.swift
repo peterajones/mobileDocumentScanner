@@ -2,6 +2,7 @@ import XCTest
 import PDFKit
 @testable import DocumentScanner
 
+@MainActor
 final class LibraryStoreTests: XCTestCase {
 
     func test_summary_fromPDFURL_readsTitlePageCountAndText() throws {
@@ -12,14 +13,13 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertTrue(summary.ocrSnippet.localizedCaseInsensitiveContains("hello"))
     }
 
-    func test_inMemoryStore_appendAndRemove() async {
+    func test_inMemoryStore_appendSortsNewestFirst() {
         let store = InMemoryLibraryStore()
         let one = DocumentSummary.stub(name: "A", date: .init(timeIntervalSince1970: 100))
         let two = DocumentSummary.stub(name: "B", date: .init(timeIntervalSince1970: 200))
-        await store.append(one)
-        await store.append(two)
-        let summaries = await store.summaries
-        XCTAssertEqual(summaries.map(\.displayName), ["B", "A"]) // newest first
+        store.append(one)
+        store.append(two)
+        XCTAssertEqual(store.summaries.map(\.displayName), ["B", "A"]) // newest first
     }
 
     // MARK: - Helpers

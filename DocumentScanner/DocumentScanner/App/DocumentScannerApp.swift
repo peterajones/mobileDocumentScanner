@@ -2,10 +2,11 @@ import SwiftUI
 
 @main
 struct DocumentScannerApp: App {
+    @State private var store = MetadataQueryLibraryStore()
+
     var body: some Scene {
         WindowGroup {
-            Text("Library coming soon")
-                .padding()
+            LibraryView(store: store)
         }
     }
 }

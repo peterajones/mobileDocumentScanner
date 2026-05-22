@@ -1,11 +1,15 @@
 import Vision
 import UIKit
 
+protocol OCRProviding {
+    func recognizeText(in image: UIImage) async throws -> [String]
+}
+
 enum OCREngineError: Error {
     case invalidImage
 }
 
-struct OCREngine {
+struct OCREngine: OCRProviding {
 
     /// Recognize text in the supplied image. Returns one string per
     /// `VNRecognizedTextObservation`'s top candidate, in Vision's natural reading order.

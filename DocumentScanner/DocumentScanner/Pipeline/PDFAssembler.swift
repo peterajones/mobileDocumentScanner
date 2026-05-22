@@ -1,9 +1,28 @@
+import CoreGraphics
 import PDFKit
 import UIKit
 
 enum PDFAssemblerError: Error {
     case pageCreationFailed
     case documentLoadFailed
+}
+
+/// `PDFDocument` whose `dataRepresentation()` returns the exact bytes it was
+/// constructed from, rather than re-serializing through PDFKit. PDFKit's
+/// re-serialization stamps a fresh `CreationDate` and `Producer`, which would
+/// silently drop the metadata we baked into the byte stream via
+/// `CGContext`'s `auxiliaryInfo`.
+private final class ByteFaithfulPDFDocument: PDFDocument {
+    private let sourceData: Data
+
+    init?(byteFaithfulData: Data) {
+        self.sourceData = byteFaithfulData
+        super.init(data: byteFaithfulData)
+    }
+
+    override func dataRepresentation() -> Data? {
+        return sourceData
+    }
 }
 
 struct PDFAssembler {
@@ -21,7 +40,21 @@ struct PDFAssembler {
 
         // Use US Letter as a sane default; each page's actual bounds come from its image.
         var defaultBox = CGRect(x: 0, y: 0, width: 612, height: 792)
-        guard let context = CGContext(consumer: consumer, mediaBox: &defaultBox, nil) else {
+
+        // Embed metadata directly in the PDF byte stream via auxiliaryInfo so it
+        // survives a write of the underlying bytes — mutating `documentAttributes`
+        // on the parsed `PDFDocument` would only affect the in-memory object.
+        //
+        // CoreGraphics on iOS does not expose `kCGPDFContextCreationDate` or
+        // `kCGPDFContextProducer` as Swift constants, but the dictionary string
+        // keys CG actually looks for (verified at runtime) are "CGPDFContextDate"
+        // for the creation date and "CGPDFContextProducer" for the producer.
+        let auxiliaryInfo: CFDictionary = [
+            "CGPDFContextDate": createdAt,
+            "CGPDFContextProducer": "DocumentScanner",
+        ] as CFDictionary
+
+        guard let context = CGContext(consumer: consumer, mediaBox: &defaultBox, auxiliaryInfo) else {
             throw PDFAssemblerError.pageCreationFailed
         }
 
@@ -31,14 +64,9 @@ struct PDFAssembler {
 
         context.closePDF()
 
-        guard let document = PDFDocument(data: data as Data) else {
+        guard let document = ByteFaithfulPDFDocument(byteFaithfulData: data as Data) else {
             throw PDFAssemblerError.documentLoadFailed
         }
-
-        var attrs = document.documentAttributes ?? [:]
-        attrs[PDFDocumentAttribute.creationDateAttribute] = createdAt
-        attrs[PDFDocumentAttribute.producerAttribute] = "DocumentScanner"
-        document.documentAttributes = attrs
 
         return document
     }

@@ -42,6 +42,18 @@ final class PDFAssemblerTests: XCTestCase {
         XCTAssertEqual(attrs[PDFDocumentAttribute.creationDateAttribute] as? Date, date)
     }
 
+    func test_assemble_metadataSurvivesByteRoundTrip() throws {
+        let image = whitePageImage()
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let pdf = try PDFAssembler().assemble(
+            pages: [ScannedPage(image: image, recognizedStrings: [])],
+            createdAt: date
+        )
+        let data = try XCTUnwrap(pdf.dataRepresentation())
+        let reloaded = try XCTUnwrap(PDFDocument(data: data))
+        XCTAssertEqual(reloaded.documentAttributes?[PDFDocumentAttribute.creationDateAttribute] as? Date, date)
+    }
+
     // MARK: - Helpers
 
     private func whitePageImage() -> UIImage {

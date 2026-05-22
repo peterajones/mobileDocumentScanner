@@ -7,8 +7,8 @@ import Foundation
 /// or the device is offline at first launch). A later plan adds migration of local files
 /// to iCloud when it becomes available.
 struct ICloudContainer {
-    var iCloudURLProvider: () -> URL?
-    var localDocumentsURL: URL
+    let iCloudURLProvider: () -> URL?
+    let localDocumentsURL: URL
 
     init(
         iCloudURLProvider: @escaping () -> URL? = ICloudContainer.defaultICloudURLProvider,

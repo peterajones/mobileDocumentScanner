@@ -3,7 +3,7 @@ import XCTest
 
 final class ICloudContainerTests: XCTestCase {
 
-    func test_localDocumentsURL_returnsCachesDirectoryUnderTestsDocuments() {
+    func test_localDocumentsURL_endsInDocuments() {
         let container = ICloudContainer()
         let url = container.localDocumentsURL
         XCTAssertTrue(url.path.hasSuffix("/Documents"),

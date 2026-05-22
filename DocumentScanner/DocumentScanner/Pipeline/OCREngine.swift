@@ -1,7 +1,7 @@
 import Vision
 import UIKit
 
-protocol OCRProviding {
+protocol OCRProviding: Sendable {
     func recognizeText(in image: UIImage) async throws -> [String]
 }
 

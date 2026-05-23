@@ -182,6 +182,11 @@ private struct PDFKitView: UIViewRepresentable {
     let highlightedSelections: [PDFSelection]
     let currentSelection: PDFSelection?
 
+    /// Tag we attach to highlight annotations so we can remove the ones we
+    /// added on the next update without disturbing any annotations that
+    /// happened to be in the PDF already.
+    private static let annotationUserName = "DocumentScanner.searchHighlight"
+
     func makeUIView(context: Context) -> PDFView {
         let v = PDFView()
         v.autoScales = true
@@ -194,10 +199,44 @@ private struct PDFKitView: UIViewRepresentable {
         if view.document !== document {
             view.document = document
         }
-        view.highlightedSelections = highlightedSelections.isEmpty ? nil : highlightedSelections
+
+        // PDFView.highlightedSelections doesn't reliably render on iOS — use
+        // real PDFAnnotation highlights, which are guaranteed to draw.
+        removeOurAnnotations(from: document)
+
+        for match in highlightedSelections {
+            let color: UIColor = (match == currentSelection)
+                ? UIColor.systemBlue.withAlphaComponent(0.45)
+                : UIColor.systemYellow.withAlphaComponent(0.45)
+            addHighlight(for: match, color: color)
+        }
+
         if let currentSelection {
-            view.setCurrentSelection(currentSelection, animate: false)
             view.go(to: currentSelection)
+        }
+    }
+
+    private func removeOurAnnotations(from document: PDFDocument) {
+        for i in 0..<document.pageCount {
+            guard let page = document.page(at: i) else { continue }
+            for annotation in page.annotations where annotation.userName == Self.annotationUserName {
+                page.removeAnnotation(annotation)
+            }
+        }
+    }
+
+    private func addHighlight(for selection: PDFSelection, color: UIColor) {
+        // selectionsByLine() splits a multi-line match into one selection per
+        // line, each with a single bounding rect we can wrap in an annotation.
+        for lineSelection in selection.selectionsByLine() {
+            for page in lineSelection.pages {
+                let bounds = lineSelection.bounds(for: page)
+                guard !bounds.isEmpty else { continue }
+                let annotation = PDFAnnotation(bounds: bounds, forType: .highlight, withProperties: nil)
+                annotation.color = color
+                annotation.userName = Self.annotationUserName
+                page.addAnnotation(annotation)
+            }
         }
     }
 }

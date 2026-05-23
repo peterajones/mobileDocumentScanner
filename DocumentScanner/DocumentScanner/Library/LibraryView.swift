@@ -10,6 +10,7 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
 
     @State private var searchText = ""
     @State private var showingCapture = false
+    @State private var showingCameraDenied = false
     @State private var nameSheet: NameSheetContext?
     @State private var path: [DocumentSummary] = []
 
@@ -60,7 +61,17 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingCapture = true } label: { Image(systemName: "plus") }
+                    Button {
+                        Task {
+                            switch await CameraPermission.request() {
+                            case .authorized: showingCapture = true
+                            case .denied: showingCameraDenied = true
+                            case .notDetermined: break  // unreachable after request()
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
                 }
             }
             .fullScreenCover(isPresented: $showingCapture) {
@@ -74,6 +85,9 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                     onCancel: { showingCapture = false }
                 )
                 .ignoresSafeArea()
+            }
+            .fullScreenCover(isPresented: $showingCameraDenied) {
+                CameraDeniedView(onDismiss: { showingCameraDenied = false })
             }
             .sheet(item: $nameSheet) { ctx in
                 NameDocumentSheet(

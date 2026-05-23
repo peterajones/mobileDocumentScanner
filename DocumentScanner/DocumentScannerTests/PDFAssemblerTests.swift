@@ -7,14 +7,14 @@ final class PDFAssemblerTests: XCTestCase {
 
     func test_assemble_singlePage_producesPDFWithOnePage() throws {
         let image = whitePageImage()
-        let page = ScannedPage(image: image, recognizedStrings: [])
+        let page = ScannedPage(image: image, observations: [])
         let pdf = try PDFAssembler().assemble(pages: [page], createdAt: Date())
         XCTAssertEqual(pdf.pageCount, 1)
     }
 
     func test_assemble_multiplePages_producesCorrectPageCount() throws {
         let image = whitePageImage()
-        let pages = (0..<3).map { _ in ScannedPage(image: image, recognizedStrings: []) }
+        let pages = (0..<3).map { _ in ScannedPage(image: image, observations: []) }
         let pdf = try PDFAssembler().assemble(pages: pages, createdAt: Date())
         XCTAssertEqual(pdf.pageCount, 3)
     }
@@ -23,7 +23,10 @@ final class PDFAssemblerTests: XCTestCase {
         let image = whitePageImage()
         let page = ScannedPage(
             image: image,
-            recognizedStrings: ["The quick brown fox", "jumps over the lazy dog"]
+            observations: [
+                obs("The quick brown fox", y: 0.7),
+                obs("jumps over the lazy dog", y: 0.5),
+            ]
         )
         let pdf = try PDFAssembler().assemble(pages: [page], createdAt: Date())
         let text = pdf.string ?? ""
@@ -35,7 +38,7 @@ final class PDFAssemblerTests: XCTestCase {
         let image = whitePageImage()
         let date = Date(timeIntervalSince1970: 1_700_000_000)
         let pdf = try PDFAssembler().assemble(
-            pages: [ScannedPage(image: image, recognizedStrings: [])],
+            pages: [ScannedPage(image: image, observations: [])],
             createdAt: date
         )
         let attrs = pdf.documentAttributes ?? [:]
@@ -52,8 +55,8 @@ final class PDFAssemblerTests: XCTestCase {
         let image = whitePageImage()
         let pdf = try PDFAssembler().assemble(
             pages: [
-                ScannedPage(image: image, recognizedStrings: ["alpha"]),
-                ScannedPage(image: image, recognizedStrings: ["beta"]),
+                ScannedPage(image: image, observations: [obs("alpha", y: 0.5)]),
+                ScannedPage(image: image, observations: [obs("beta", y: 0.5)]),
             ],
             createdAt: Date()
         )
@@ -77,7 +80,7 @@ final class PDFAssemblerTests: XCTestCase {
         let rotated = UIImage(cgImage: raw.cgImage!, scale: raw.scale, orientation: .right)
 
         let pdf = try PDFAssembler().assemble(
-            pages: [ScannedPage(image: rotated, recognizedStrings: [])],
+            pages: [ScannedPage(image: rotated, observations: [])],
             createdAt: Date()
         )
         let bounds = try XCTUnwrap(pdf.page(at: 0)).bounds(for: .mediaBox)
@@ -94,5 +97,12 @@ final class PDFAssemblerTests: XCTestCase {
         let img = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
         return img
+    }
+
+    /// Build an OCRObservation at a given normalized y (origin bottom-left),
+    /// occupying most of the page width with a default line height.
+    private func obs(_ string: String, y: CGFloat) -> OCRObservation {
+        OCRObservation(string: string,
+                       boundingBox: CGRect(x: 0.05, y: y, width: 0.9, height: 0.04))
     }
 }

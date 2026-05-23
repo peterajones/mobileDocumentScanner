@@ -7,17 +7,19 @@ final class OCREngineTests: XCTestCase {
     func test_recognizeText_emptyImage_returnsEmptyArray() async throws {
         let image = UIImage.fromColor(.white, size: CGSize(width: 100, height: 100))
         let engine = OCREngine()
-        let strings = try await engine.recognizeText(in: image)
-        XCTAssertTrue(strings.isEmpty)
+        let observations = try await engine.recognizeText(in: image)
+        XCTAssertTrue(observations.isEmpty)
     }
 
     func test_recognizeText_imageWithText_returnsRecognizedStrings() async throws {
         let image = UIImage.renderingText("Hello World", size: CGSize(width: 800, height: 200))
         let engine = OCREngine()
-        let strings = try await engine.recognizeText(in: image)
-        let joined = strings.joined(separator: " ")
+        let observations = try await engine.recognizeText(in: image)
+        let joined = observations.map(\.string).joined(separator: " ")
         XCTAssertTrue(joined.localizedCaseInsensitiveContains("hello"),
-                      "expected to recognize 'hello' in \(strings)")
+                      "expected to recognize 'hello' in \(observations.map(\.string))")
+        // Each observation should have a real bounding box on the image.
+        XCTAssertTrue(observations.allSatisfy { $0.boundingBox.width > 0 && $0.boundingBox.height > 0 })
     }
 }
 

@@ -54,7 +54,11 @@ final class DocumentMutationsTests: XCTestCase {
             UIRectFill(CGRect(x: 0, y: 0, width: 100, height: 100))
         }
         let assembled = try PDFAssembler().assemble(
-            pages: [ScannedPage(image: image, recognizedStrings: [marker])],
+            pages: [ScannedPage(
+                image: image,
+                observations: [OCRObservation(string: marker,
+                                              boundingBox: CGRect(x: 0.1, y: 0.5, width: 0.8, height: 0.05))]
+            )],
             createdAt: Date()
         )
         return try XCTUnwrap(assembled.page(at: 0))

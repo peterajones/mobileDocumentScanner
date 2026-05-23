@@ -11,7 +11,7 @@ final class PageImageRendererTests: XCTestCase {
             UIRectFill(CGRect(x: 0, y: 0, width: 100, height: 100))
         }
         let pdf = try PDFAssembler().assemble(
-            pages: [ScannedPage(image: source, recognizedStrings: [])],
+            pages: [ScannedPage(image: source, observations: [])],
             createdAt: Date()
         )
         let page = try XCTUnwrap(pdf.page(at: 0))

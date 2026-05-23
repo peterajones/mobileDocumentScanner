@@ -121,9 +121,9 @@ struct PageEditorView: View {
                 return
             }
             let finalImage = rotatedImage(corrected)
-            let strings = (try? await ocr.recognizeText(in: finalImage)) ?? []
+            let observations = (try? await ocr.recognizeText(in: finalImage)) ?? []
             let newDoc = try PDFAssembler().assemble(
-                pages: [ScannedPage(image: finalImage, recognizedStrings: strings)],
+                pages: [ScannedPage(image: finalImage, observations: observations)],
                 createdAt: Date()
             )
             DocumentMutations.replacePage(in: session.pdf, at: pageIndex, with: newDoc)

@@ -36,7 +36,11 @@ final class LibraryStoreTests: XCTestCase {
             UIGraphicsEndImageContext()
             return img
         }()
-        let page = ScannedPage(image: image, recognizedStrings: ["hello world"])
+        let page = ScannedPage(
+            image: image,
+            observations: [OCRObservation(string: "hello world",
+                                          boundingBox: CGRect(x: 0.1, y: 0.5, width: 0.8, height: 0.05))]
+        )
         let pdf = try PDFAssembler().assemble(pages: [page], createdAt: Date())
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("Test Doc.pdf")

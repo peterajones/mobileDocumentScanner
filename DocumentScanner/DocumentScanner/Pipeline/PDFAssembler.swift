@@ -76,16 +76,13 @@ struct PDFAssembler {
         context.draw(cgImage, in: pageRect)
 
         // Draw OCR-recognized text invisibly so `pdf.string` returns it and search
-        // works. We use the PDF text-rendering mode "invisible" (3), which keeps the
-        // glyphs in the content stream — and therefore in the text extraction — while
-        // not painting any pixels.
-        //
-        // The current layout is coarse: all lines stacked at the top of the page in a
-        // tiny font. A future plan will refine this to per-observation position-anchored
-        // text using the bounding boxes from VNRecognizedTextObservation so highlights
-        // line up with the visible scan.
-        if !page.recognizedStrings.isEmpty {
-            drawInvisibleText(page.recognizedStrings, in: pageRect, into: context)
+        // highlights align with the visible content. We use the PDF text-rendering
+        // mode "invisible" (3), which keeps the glyphs in the content stream — and
+        // therefore in the text extraction — while not painting any pixels. Each
+        // observation is positioned at its Vision-normalized bounding box scaled to
+        // page coordinates, so per-line highlights match the underlying text.
+        if !page.observations.isEmpty {
+            drawInvisibleText(page.observations, in: pageRect, into: context)
         }
 
         context.endPage()
@@ -106,25 +103,37 @@ struct PDFAssembler {
         }.cgImage
     }
 
-    private func drawInvisibleText(_ lines: [String], in pageRect: CGRect, into context: CGContext) {
-        let font = UIFont.systemFont(ofSize: 8)
-
+    private func drawInvisibleText(_ observations: [OCRObservation], in pageRect: CGRect, into context: CGContext) {
         context.saveGState()
         context.setTextDrawingMode(.invisible)
 
-        var y = pageRect.height - font.lineHeight
-        for line in lines {
+        for observation in observations {
+            // Vision returns normalized coords (0…1, origin bottom-left, y-up).
+            // CGContext PDF coords are also origin bottom-left, y-up — no flip needed.
+            let bbox = observation.boundingBox
+            let rect = CGRect(
+                x: bbox.origin.x * pageRect.width,
+                y: bbox.origin.y * pageRect.height,
+                width: bbox.width * pageRect.width,
+                height: bbox.height * pageRect.height
+            )
+            guard rect.height > 0, rect.width > 0 else { continue }
+
+            // Size the font so the rendered glyphs roughly match the observed
+            // line height. Width-fit is approximate; PDFKit's findString uses
+            // the glyph bounding boxes returned from this draw to position
+            // highlights, so close-enough is good enough.
+            let font = UIFont.systemFont(ofSize: rect.height)
             let attributed = NSAttributedString(
-                string: line,
+                string: observation.string,
                 attributes: [
                     .font: font,
                     .foregroundColor: UIColor.clear,
                 ]
             )
             let ctLine = CTLineCreateWithAttributedString(attributed)
-            context.textPosition = CGPoint(x: 8, y: y)
+            context.textPosition = CGPoint(x: rect.origin.x, y: rect.origin.y)
             CTLineDraw(ctLine, context)
-            y -= font.lineHeight
         }
 
         context.restoreGState()

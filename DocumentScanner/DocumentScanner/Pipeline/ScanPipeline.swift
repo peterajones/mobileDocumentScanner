@@ -37,19 +37,20 @@ actor ScanPipeline {
         pages.reserveCapacity(images.count)
 
         for (index, image) in images.enumerated() {
-            let strings: [String]
+            let observations: [OCRObservation]
             do {
-                strings = try await ocr.recognizeText(in: image)
+                observations = try await ocr.recognizeText(in: image)
             } catch {
                 logger.error("OCR failed on page \(index + 1, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                strings = []
+                observations = []
             }
-            pages.append(ScannedPage(image: image, recognizedStrings: strings))
+            pages.append(ScannedPage(image: image, observations: observations))
         }
 
         let pdf = try assembler.assemble(pages: pages, createdAt: createdAt)
         let ocrText = pages
-            .flatMap(\.recognizedStrings)
+            .flatMap(\.observations)
+            .map(\.string)
             .joined(separator: "\n")
         return ScanResult(pdf: pdf, ocrText: ocrText)
     }

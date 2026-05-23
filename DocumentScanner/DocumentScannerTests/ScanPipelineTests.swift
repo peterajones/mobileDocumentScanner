@@ -40,13 +40,18 @@ final class ScanPipelineTests: XCTestCase {
     }
 
     private struct StubOCR: OCRProviding {
-        let strings: [String]
-        init(returning strings: [String]) { self.strings = strings }
-        func recognizeText(in image: UIImage) async throws -> [String] { strings }
+        let observations: [OCRObservation]
+        init(returning strings: [String]) {
+            // Default bounding box for tests — value doesn't matter for the
+            // pipeline tests since they don't inspect positions.
+            let defaultBox = CGRect(x: 0.1, y: 0.5, width: 0.8, height: 0.05)
+            self.observations = strings.map { OCRObservation(string: $0, boundingBox: defaultBox) }
+        }
+        func recognizeText(in image: UIImage) async throws -> [OCRObservation] { observations }
     }
 
     private struct FailingOnceOCR: OCRProviding {
-        func recognizeText(in image: UIImage) async throws -> [String] {
+        func recognizeText(in image: UIImage) async throws -> [OCRObservation] {
             throw NSError(domain: "test", code: 1)
         }
     }

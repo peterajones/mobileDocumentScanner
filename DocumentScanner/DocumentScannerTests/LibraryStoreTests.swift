@@ -7,7 +7,7 @@ final class LibraryStoreTests: XCTestCase {
 
     func test_summary_fromPDFURL_readsTitlePageCountAndText() throws {
         let url = try writeFixturePDF()
-        let summary = try DocumentSummary.fromFile(at: url)
+        let summary = DocumentSummary.fromFile(at: url)
         XCTAssertEqual(summary.displayName, "Test Doc")
         XCTAssertEqual(summary.pageCount, 1)
         XCTAssertTrue(summary.ocrSnippet.localizedCaseInsensitiveContains("hello"))
@@ -58,7 +58,8 @@ private extension DocumentSummary {
             displayName: name,
             createdAt: date,
             pageCount: 1,
-            ocrSnippet: ""
+            ocrSnippet: "",
+            isCorrupt: false
         )
     }
 }

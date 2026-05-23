@@ -7,23 +7,24 @@ struct DocumentSummary: Identifiable, Hashable {
     let createdAt: Date
     let pageCount: Int
     let ocrSnippet: String
+    let isCorrupt: Bool
 
     var id: URL { url }
 
-    enum LoadError: Error { case unreadablePDF }
-
-    static func fromFile(at url: URL) throws -> DocumentSummary {
-        guard let pdf = PDFDocument(url: url) else { throw LoadError.unreadablePDF }
+    static func fromFile(at url: URL) -> DocumentSummary {
+        let displayName = url.deletingPathExtension().lastPathComponent
+        guard let pdf = PDFDocument(url: url) else {
+            let fsCreated = (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
+            return DocumentSummary(url: url, displayName: displayName,
+                                   createdAt: fsCreated, pageCount: 0, ocrSnippet: "",
+                                   isCorrupt: true)
+        }
         let attrs = pdf.documentAttributes ?? [:]
         let created = (attrs[PDFDocumentAttribute.creationDateAttribute] as? Date)
             ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate)
             ?? Date()
-        return DocumentSummary(
-            url: url,
-            displayName: url.deletingPathExtension().lastPathComponent,
-            createdAt: created,
-            pageCount: pdf.pageCount,
-            ocrSnippet: pdf.string ?? ""
-        )
+        return DocumentSummary(url: url, displayName: displayName,
+                               createdAt: created, pageCount: pdf.pageCount,
+                               ocrSnippet: pdf.string ?? "", isCorrupt: false)
     }
 }

@@ -43,7 +43,7 @@ final class MetadataQueryLibraryStore: NSObject, LibraryStoring {
 
         let items = (query.results as? [NSMetadataItem]) ?? []
         let urls = items.compactMap { $0.value(forAttribute: NSMetadataItemURLKey) as? URL }
-        let built = urls.compactMap { try? DocumentSummary.fromFile(at: $0) }
+        let built = urls.map { DocumentSummary.fromFile(at: $0) }
             .sorted(by: { $0.createdAt > $1.createdAt })
         // Hop to main since `@Observable` notifies SwiftUI on whatever queue mutates the value.
         DispatchQueue.main.async {

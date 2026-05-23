@@ -30,8 +30,20 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                     )
                 } else {
                     List(filtered) { summary in
-                        NavigationLink(value: summary) {
+                        if summary.isCorrupt {
                             DocumentRow(summary: summary)
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        try? storage.delete(at: summary.url)
+                                        store.refresh()
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        } else {
+                            NavigationLink(value: summary) {
+                                DocumentRow(summary: summary)
+                            }
                         }
                     }
                     .searchable(text: $searchText, prompt: "Search documents")

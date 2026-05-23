@@ -6,10 +6,19 @@ struct DocumentRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ThumbnailView(url: summary.url)
+            if summary.isCorrupt {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4).fill(Color(.systemGray6))
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                }
                 .frame(width: 44, height: 56)
-                .background(Color(.systemGray6))
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(.systemGray4)))
+            } else {
+                ThumbnailView(url: summary.url)
+                    .frame(width: 44, height: 56)
+                    .background(Color(.systemGray6))
+                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(.systemGray4)))
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(summary.displayName)
@@ -17,7 +26,7 @@ struct DocumentRow: View {
                     .lineLimit(1)
                 Text(formattedSubtitle)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(summary.isCorrupt ? .orange : .secondary)
             }
             Spacer()
         }
@@ -25,6 +34,7 @@ struct DocumentRow: View {
     }
 
     private var formattedSubtitle: String {
+        if summary.isCorrupt { return "Couldn't read this file" }
         let date = summary.createdAt.formatted(date: .abbreviated, time: .omitted)
         let pages = summary.pageCount == 1 ? "1 page" : "\(summary.pageCount) pages"
         return "\(date) · \(pages)"

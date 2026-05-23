@@ -33,7 +33,8 @@ final class DocumentSessionStripHighlightsTests: XCTestCase {
         let initialURL = try storage.write(pdf, preferredName: "Test")
 
         let summary = DocumentSummary(url: initialURL, displayName: "Test",
-                                      createdAt: Date(), pageCount: 1, ocrSnippet: "")
+                                      createdAt: Date(), pageCount: 1, ocrSnippet: "",
+                                      isCorrupt: false)
         let session = try DocumentSession(summary: summary, storage: storage)
 
         // Re-attach a search-highlight annotation to the session's in-memory PDF

@@ -25,4 +25,13 @@ enum DocumentMutations {
             pdf.insert(page, at: pdf.pageCount)
         }
     }
+
+    /// Replace the page at `index` in `pdf` with the first page of `replacement`.
+    /// No-op if either bound is invalid.
+    static func replacePage(in pdf: PDFDocument, at index: Int, with replacement: PDFDocument) {
+        guard index >= 0, index < pdf.pageCount,
+              let newPage = replacement.page(at: 0) else { return }
+        pdf.removePage(at: index)
+        pdf.insert(newPage, at: index)
+    }
 }

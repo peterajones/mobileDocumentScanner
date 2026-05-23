@@ -23,6 +23,13 @@ final class DocumentMutationsTests: XCTestCase {
         XCTAssertEqual(pageMarkers(pdf), ["A", "B", "C", "D"])
     }
 
+    func test_replacePage_swapsThePageAtIndex() throws {
+        let pdf = try threePagePDF()       // [A, B, C]
+        let replacement = try singlePagePDF(marker: "X")
+        DocumentMutations.replacePage(in: pdf, at: 1, with: replacement)
+        XCTAssertEqual(pageMarkers(pdf), ["A", "X", "C"])
+    }
+
     // MARK: - Helpers
 
     private func threePagePDF() throws -> PDFDocument {

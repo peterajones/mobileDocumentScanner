@@ -11,12 +11,17 @@ import SwiftUI
 final class AlertCenter {
     private(set) var current: AppAlert?
 
+    /// Allocation is pure and main-actor-free; `nonisolated init` lets the
+    /// EnvironmentKey default value below initialize one without crossing
+    /// actor isolation. All mutating operations still run on the main actor.
+    nonisolated init() {}
+
     func present(_ alert: AppAlert) { current = alert }
     func dismiss() { current = nil }
 }
 
 private struct AlertCenterKey: EnvironmentKey {
-    @MainActor static let defaultValue = AlertCenter()
+    static let defaultValue = AlertCenter()
 }
 
 extension EnvironmentValues {

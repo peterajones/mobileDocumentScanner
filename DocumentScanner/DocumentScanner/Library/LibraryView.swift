@@ -10,6 +10,7 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
     @State private var searchText = ""
     @State private var showingCapture = false
     @State private var nameSheet: NameSheetContext?
+    @State private var path: [DocumentSummary] = []
 
     private struct NameSheetContext: Identifiable {
         let id = UUID()
@@ -17,7 +18,7 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if store.summaries.isEmpty {
                     ContentUnavailableView(
@@ -34,7 +35,14 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                     .searchable(text: $searchText, prompt: "Search documents")
                     .refreshable { store.refresh() }
                     .navigationDestination(for: DocumentSummary.self) { summary in
-                        DocumentViewerView(summary: summary)
+                        DocumentViewerView(
+                            summary: summary,
+                            storage: storage,
+                            onDeleted: {
+                                store.refresh()
+                                path.removeLast()
+                            }
+                        )
                     }
                 }
             }

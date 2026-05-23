@@ -58,10 +58,21 @@ final class DocumentSession {
     }
 
     private func stripSearchHighlightAnnotations() {
+        // We rely on annotation type rather than the userName tag because
+        // PDFKit doesn't reliably preserve userName on .highlight subtypes
+        // through the page's annotation lifecycle. Since the app doesn't add
+        // any non-search highlight annotations of its own, removing every
+        // .highlight is safe — if that ever changes, fall back to userName
+        // tagging or track our annotations explicitly.
+        //
+        // Note: PDFAnnotation.type returns the subtype string without the
+        // leading slash ("Highlight"), while PDFAnnotationSubtype.highlight
+        // .rawValue includes it ("/Highlight"). Compare against the bare
+        // form.
         for i in 0..<pdf.pageCount {
             guard let page = pdf.page(at: i) else { continue }
-            for annotation in page.annotations
-                where annotation.userName == Self.searchHighlightAnnotationName {
+            let toRemove = page.annotations.filter { $0.type == "Highlight" }
+            for annotation in toRemove {
                 page.removeAnnotation(annotation)
             }
         }

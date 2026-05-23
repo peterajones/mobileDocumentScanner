@@ -5,9 +5,11 @@ import PDFKit
 @MainActor
 final class DocumentSessionStripHighlightsTests: XCTestCase {
 
-    func test_save_stripsSearchHighlightAnnotations() throws {
-        // Build a PDF with both a user annotation and one of our search-highlight
-        // annotations. After save, only the user annotation should remain on disk.
+    func test_save_stripsHighlightAnnotations() throws {
+        // The strip removes ALL .highlight-subtype annotations because PDFKit
+        // doesn't reliably preserve the userName tag we tried to use to
+        // discriminate. Non-highlight annotations (e.g., free-text notes)
+        // should still survive a save.
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -24,10 +26,10 @@ final class DocumentSessionStripHighlightsTests: XCTestCase {
         let page = try XCTUnwrap(pdf.page(at: 0))
         let pageBounds = page.bounds(for: .mediaBox)
 
-        // User annotation (untagged) — should survive.
-        let userAnnotation = PDFAnnotation(bounds: pageBounds, forType: .highlight, withProperties: nil)
-        userAnnotation.userName = "user-added"
-        page.addAnnotation(userAnnotation)
+        // A free-text annotation (NOT a highlight) — should survive the strip.
+        let freeTextAnnotation = PDFAnnotation(bounds: pageBounds, forType: .freeText, withProperties: nil)
+        freeTextAnnotation.contents = "note that should survive"
+        page.addAnnotation(freeTextAnnotation)
 
         let storage = DocumentStorage(documentsURL: tempDir)
         let initialURL = try storage.write(pdf, preferredName: "Test")
@@ -37,23 +39,23 @@ final class DocumentSessionStripHighlightsTests: XCTestCase {
                                       isCorrupt: false)
         let session = try DocumentSession(summary: summary, storage: storage)
 
-        // Re-attach a search-highlight annotation to the session's in-memory PDF
-        // (mimics what the viewer's highlight code does at runtime).
+        // Add a highlight annotation to the session's in-memory PDF (mimics what
+        // the viewer's search-highlight code does at runtime).
         let sessionPage = try XCTUnwrap(session.pdf.page(at: 0))
         let highlight = PDFAnnotation(bounds: pageBounds, forType: .highlight, withProperties: nil)
-        highlight.userName = DocumentSession.searchHighlightAnnotationName
         sessionPage.addAnnotation(highlight)
-
-        // Sanity: in-memory PDF has both kinds of annotation now.
-        XCTAssertEqual(sessionPage.annotations.count, 2)
 
         _ = try session.save()
 
-        // Reload from disk and check what survived.
+        // Reload from disk: free-text survives, highlight is gone.
         let reloaded = try XCTUnwrap(PDFDocument(url: initialURL))
         let reloadedPage = try XCTUnwrap(reloaded.page(at: 0))
-        let usernames = reloadedPage.annotations.compactMap(\.userName)
-        XCTAssertTrue(usernames.contains("user-added"))
-        XCTAssertFalse(usernames.contains(DocumentSession.searchHighlightAnnotationName))
+        let types = reloadedPage.annotations.map(\.type)
+        // PDFAnnotation.type returns the bare subtype name, not the slash-prefixed
+        // PDFAnnotationSubtype.rawValue form.
+        XCTAssertTrue(types.contains("FreeText"),
+                      "free-text annotation should survive, got types: \(types)")
+        XCTAssertFalse(types.contains("Highlight"),
+                       "highlight annotations should be stripped, got types: \(types)")
     }
 }

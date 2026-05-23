@@ -65,11 +65,23 @@ struct DocumentViewerView: View {
                         .foregroundStyle(.primary)
                 }
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .bottomBar) {
                 Button(editMode ? "Done" : "Edit") { editMode.toggle() }
+                Spacer()
                 ShareLink(item: session.url)
-                Button { showDeleteConfirm = true } label: {
-                    Image(systemName: "trash")
+                Menu {
+                    Button {
+                        isRenaming = true
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }

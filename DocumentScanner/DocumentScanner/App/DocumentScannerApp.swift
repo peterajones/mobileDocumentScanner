@@ -2,25 +2,47 @@ import SwiftUI
 
 @main
 struct DocumentScannerApp: App {
-    @State private var store = MetadataQueryLibraryStore()
+    @State private var metadataStore = MetadataQueryLibraryStore()
+    @State private var inMemoryStore = InMemoryLibraryStore()
     @State private var lockSettings = AppLockSettings()
     @State private var alertCenter = AlertCenter()
     @AppStorage("iCloudOnboardingDismissed") private var iCloudOnboardingDismissed = false
 
     private let container = ICloudContainer()
     private let pipeline = ScanPipeline()
-    private let scannerPresenter: DocumentScannerPresenting = SystemDocumentScanner()
+    private let scannerPresenter: DocumentScannerPresenting =
+        isUITesting ? StubDocumentScanner() : SystemDocumentScanner()
+    private let testStorage: DocumentStorage = {
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("uitests-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        return DocumentStorage(documentsURL: tmp)
+    }()
+
+    private static var isUITesting: Bool {
+        ProcessInfo.processInfo.arguments.contains("-UITestMode")
+    }
 
     var body: some Scene {
         WindowGroup {
-            if !iCloudOnboardingDismissed && !container.isICloudAvailable {
+            if Self.isUITesting {
+                // Hermetic wiring: no iCloud, no real scanner, no lock gate.
+                LibraryView(
+                    store: inMemoryStore,
+                    scannerPresenter: scannerPresenter,
+                    storage: testStorage,
+                    pipeline: pipeline,
+                    lockSettings: lockSettings
+                )
+                .environment(\.alertCenter, alertCenter)
+            } else if !iCloudOnboardingDismissed && !container.isICloudAvailable {
                 ICloudOnboardingView(onTryAnyway: { iCloudOnboardingDismissed = true })
                     .environment(\.alertCenter, alertCenter)
             } else {
                 LockGate(lockSettings: lockSettings) {
                     PrivacyBlurOverlay {
                         LibraryView(
-                            store: store,
+                            store: metadataStore,
                             scannerPresenter: scannerPresenter,
                             storage: DocumentStorage(documentsURL: container.resolveDocumentsURL()),
                             pipeline: pipeline,

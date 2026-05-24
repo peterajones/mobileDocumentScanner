@@ -1,4 +1,7 @@
-# Mobile Scanner — Privacy Policy
+<div style="display: flex; align-items: center; gap: 16px;">
+  <img src="images/document-scanner-1024x1024.png" alt="Mobile Scanner" width="64" height="64" style="border-radius: 14px;" />
+  <h1 style="margin: 0;">Mobile Scanner — Privacy Policy</h1>
+</div>
 
 **Effective date:** May 24, 2026
 

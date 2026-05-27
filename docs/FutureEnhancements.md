@@ -14,6 +14,16 @@ The next release. Six items, scoped to roughly 1-2 weekends of work.
 
 Replace Xcode's default blank-white launch screen with a tinted background + centered app icon. Current behaviour: brief blank white while iOS is doing app-startup overhead. Better: something that looks like "the app starting" rather than "the app crashed."
 
+Layout (confirmed):
+
+```
+       Pocket
+      [ logo ]
+      Scanner
+```
+
+The wordmark is split top/bottom around the centered icon. No gradient — solid background tint. The app icon is not wordmarked, so the "Pocket" / "Scanner" text is doing real work here.
+
 - Target file: `LaunchScreen.storyboard` (create if absent) or `UILaunchScreen` dictionary in Info.plist
 - ~10 minutes of work
 

@@ -5,6 +5,8 @@ DerivedData/
 *.xcuserdatad/
 xcuserdata/
 *.moved-aside
+**/xcshareddata/WorkspaceSettings.xcsettings
+**/xcshareddata/swiftpm/
 
 # Swift Package Manager
 .swiftpm/

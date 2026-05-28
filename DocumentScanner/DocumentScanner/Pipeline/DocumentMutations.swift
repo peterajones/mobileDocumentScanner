@@ -17,6 +17,16 @@ enum DocumentMutations {
         pdf.removePage(at: index)
     }
 
+    /// Bulk-delete the pages at the given indices. Deletes in descending
+    /// order so an earlier removal doesn't shift the meaning of later indices.
+    /// Out-of-range entries are skipped.
+    static func deletePages(in pdf: PDFDocument, at indices: Set<Int>) {
+        for index in indices.sorted(by: >) {
+            guard index >= 0, index < pdf.pageCount else { continue }
+            pdf.removePage(at: index)
+        }
+    }
+
     /// Append all pages from `other` onto `pdf`. Used by "Add Pages" after the
     /// new scans run through ScanPipeline -> PDFAssembler.
     static func append(_ other: PDFDocument, to pdf: PDFDocument) {

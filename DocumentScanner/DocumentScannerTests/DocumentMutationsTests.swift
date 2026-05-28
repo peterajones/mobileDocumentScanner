@@ -30,6 +30,34 @@ final class DocumentMutationsTests: XCTestCase {
         XCTAssertEqual(pageMarkers(pdf), ["A", "X", "C"])
     }
 
+    func test_deletePages_removesMultiplePagesAtOnce() throws {
+        let pdf = try threePagePDF()       // [A, B, C]
+        DocumentMutations.deletePages(in: pdf, at: [0, 2])
+        XCTAssertEqual(pageMarkers(pdf), ["B"])
+    }
+
+    func test_deletePages_descendingOrderingDoesntCorruptIndices() throws {
+        // Build [A, B, C, D, E], delete indices [0, 1, 3]. Expected result: [C, E].
+        let pdf = PDFDocument()
+        for marker in ["A", "B", "C", "D", "E"] {
+            pdf.insert(try markedPage(marker), at: pdf.pageCount)
+        }
+        DocumentMutations.deletePages(in: pdf, at: [0, 1, 3])
+        XCTAssertEqual(pageMarkers(pdf), ["C", "E"])
+    }
+
+    func test_deletePages_skipsOutOfRangeIndices() throws {
+        let pdf = try threePagePDF()       // [A, B, C]
+        DocumentMutations.deletePages(in: pdf, at: [1, 99, -1])
+        XCTAssertEqual(pageMarkers(pdf), ["A", "C"])
+    }
+
+    func test_deletePages_emptySetIsNoOp() throws {
+        let pdf = try threePagePDF()
+        DocumentMutations.deletePages(in: pdf, at: [])
+        XCTAssertEqual(pageMarkers(pdf), ["A", "B", "C"])
+    }
+
     // MARK: - Helpers
 
     private func threePagePDF() throws -> PDFDocument {

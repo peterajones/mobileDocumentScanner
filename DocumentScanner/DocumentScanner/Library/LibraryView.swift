@@ -20,6 +20,7 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
     @State private var folderBeingRenamed: URL?
     @State private var renameFolderName = ""
     @State private var folderBeingDeleted: URL?
+    @AppStorage("showFolders") private var showFolders = true
 
     private struct NameSheetContext: Identifiable {
         let id = UUID()
@@ -29,15 +30,17 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if folders.isEmpty && docsAtRoot.isEmpty {
+                if visibleDocs.isEmpty && (!showFolders || folders.isEmpty) {
                     ContentUnavailableView(
                         "No documents yet",
                         systemImage: "doc.viewfinder",
-                        description: Text("Tap + to scan a document or create a folder.")
+                        description: Text(showFolders
+                            ? "Tap + to scan a document or create a folder."
+                            : "Tap + to scan a document.")
                     )
                 } else {
                     List {
-                        if !folders.isEmpty {
+                        if showFolders && !folders.isEmpty {
                             Section {
                                 ForEach(folders, id: \.self) { folderURL in
                                     NavigationLink(value: folderURL) {
@@ -102,22 +105,31 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                     .accessibilityIdentifier("Library.SettingsButton")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
+                    if showFolders {
+                        Menu {
+                            Button {
+                                triggerScan()
+                            } label: {
+                                Label("Scan Document", systemImage: "doc.viewfinder")
+                            }
+                            Button {
+                                newFolderName = ""
+                                showingNewFolderAlert = true
+                            } label: {
+                                Label("New Folder", systemImage: "folder.badge.plus")
+                            }
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .accessibilityIdentifier("Library.AddButton")
+                    } else {
                         Button {
                             triggerScan()
                         } label: {
-                            Label("Scan Document", systemImage: "doc.viewfinder")
+                            Image(systemName: "plus")
                         }
-                        Button {
-                            newFolderName = ""
-                            showingNewFolderAlert = true
-                        } label: {
-                            Label("New Folder", systemImage: "folder.badge.plus")
-                        }
-                    } label: {
-                        Image(systemName: "plus")
+                        .accessibilityIdentifier("Library.AddButton")
                     }
-                    .accessibilityIdentifier("Library.AddButton")
                 }
             }
             .fullScreenCover(isPresented: $showingCapture) {
@@ -222,7 +234,7 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
                 DocumentRow(summary: summary)
             }
             .contextMenu {
-                if !folders.isEmpty {
+                if showFolders && !folders.isEmpty {
                     Menu("Move to Folder") {
                         ForEach(folders, id: \.self) { folder in
                             Button(folder.lastPathComponent) {
@@ -242,10 +254,17 @@ struct LibraryView<Store: LibraryStoring & Observable>: View {
         }
     }
 
+    /// Docs shown in the main list, before search filter. When the user has
+    /// disabled "Show Folders" in Settings, we ignore the root-only filter
+    /// and show every PDF in storage as a single flat list.
+    private var visibleDocs: [DocumentSummary] {
+        showFolders ? docsAtRoot : store.summaries
+    }
+
     private var filteredDocs: [DocumentSummary] {
-        guard !searchText.isEmpty else { return docsAtRoot }
+        guard !searchText.isEmpty else { return visibleDocs }
         let needle = searchText.lowercased()
-        return docsAtRoot.filter {
+        return visibleDocs.filter {
             $0.displayName.lowercased().contains(needle)
             || $0.ocrSnippet.lowercased().contains(needle)
         }

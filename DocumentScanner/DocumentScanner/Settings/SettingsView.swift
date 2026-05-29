@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var lockSettings: AppLockSettings
     @State private var authError: String?
+    @AppStorage("showFolders") private var showFolders = true
 
     var body: some View {
         Form {
@@ -14,6 +15,13 @@ struct SettingsView: View {
                 if let authError {
                     Text(authError).font(.footnote).foregroundStyle(.red)
                 }
+            }
+            Section {
+                Toggle("Show Folders", isOn: $showFolders)
+            } header: {
+                Text("Library")
+            } footer: {
+                Text("When off, all documents appear in a single flat list.")
             }
             Section("About") {
                 AboutRow()
